@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "量化助手 · 盘中信号工作台",
+  title: "feels-quanty · 盘中信号工作台",
   description: "面向 WindPy 实时行情的可解释盘中买卖信号提醒工作台。",
   icons: {
     icon: "/favicon.svg",

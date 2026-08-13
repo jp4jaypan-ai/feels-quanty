@@ -40,3 +40,15 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# python
+__pycache__/
+*.py[cod]
+
+# typescript build cache
+*.tsbuildinfo
+
+# local Codex working notes
+/findings.md
+/progress.md
+/task_plan.md

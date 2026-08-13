@@ -1,5 +1,5 @@
 {
-    "name":  "site-creator-vinext-starter",
+    "name":  "feels-quanty",
     "version":  "0.1.0",
     "private":  true,
     "engines":  {
@@ -11,7 +11,8 @@
                     "start":  "vinext start",
                     "test":  "npm run build \u0026\u0026 node --test tests/rendered-html.test.mjs",
                     "lint":  "eslint . --ignore-pattern dist --ignore-pattern .next",
-                    "db:generate":  "drizzle-kit generate"
+                    "db:generate":  "drizzle-kit generate",
+                    "backend":  "powershell -NoProfile -ExecutionPolicy Bypass -File backend/start.ps1"
                 },
     "dependencies":  {
                          "drizzle-orm":  "0.45.2",
