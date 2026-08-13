@@ -1,0 +1,88 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1440' height='540' viewBox='0 0 1440 540' role='img' aria-labelledby='title desc'>
+  <title id='title'>feels-quanty — WindPy 盘中信号工作台</title>
+  <desc id='desc'>本地优先的分时顶底与多尺度动能提醒工具</desc>
+  <defs>
+    <linearGradient id='paper' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0' stop-color='#F8F9F6'/>
+      <stop offset='1' stop-color='#EEF0EC'/>
+    </linearGradient>
+    <linearGradient id='chartFill' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0' stop-color='#5B5CF0' stop-opacity='.22'/>
+      <stop offset='1' stop-color='#5B5CF0' stop-opacity='0'/>
+    </linearGradient>
+    <pattern id='grid' width='72' height='54' patternUnits='userSpaceOnUse'>
+      <path d='M72 0H0V54' fill='none' stroke='#DDE1DC' stroke-width='1'/>
+    </pattern>
+    <filter id='shadow' x='-20%' y='-20%' width='140%' height='160%'>
+      <feDropShadow dx='0' dy='24' stdDeviation='28' flood-color='#171A18' flood-opacity='.10'/>
+    </filter>
+  </defs>
+
+  <rect width='1440' height='540' rx='34' fill='url(#paper)'/>
+  <circle cx='1258' cy='30' r='250' fill='#EEEEFF'/>
+  <circle cx='112' cy='560' r='230' fill='#E9F7F1'/>
+
+  <g transform='translate(82 72)'>
+    <rect width='48' height='48' rx='14' fill='#171A18'/>
+    <circle cx='24' cy='24' r='6' fill='#F8F9F6'/>
+    <path d='M24 11v7M24 30v7M11 24h7M30 24h7' stroke='#F8F9F6' stroke-width='2.5' stroke-linecap='round'/>
+    <text x='66' y='33' fill='#171A18' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif' font-size='30' font-weight='700' letter-spacing='-.5'>feels-quanty</text>
+  </g>
+
+  <g transform='translate(82 168)' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif'>
+    <text fill='#171A18' font-size='62' font-weight='750' letter-spacing='-2'>
+      <tspan x='0' y='0'>看见转折，</tspan>
+      <tspan x='0' y='72'>再做决定。</tspan>
+    </text>
+    <text x='2' y='184' fill='#747B76' font-size='22'>WindPy 实时量价 · 分时顶底 · 多尺度 MACD-V</text>
+
+    <g transform='translate(0 224)' font-size='14' font-weight='650' letter-spacing='.5'>
+      <rect width='112' height='34' rx='17' fill='#171A18'/>
+      <text x='56' y='22' text-anchor='middle' fill='#FFFFFF'>LOCAL-FIRST</text>
+      <rect x='122' width='96' height='34' rx='17' fill='#EEEEFF' stroke='#D8D8FB'/>
+      <text x='170' y='22' text-anchor='middle' fill='#5152C8'>CAUSAL</text>
+      <rect x='228' width='126' height='34' rx='17' fill='#E9F7F1' stroke='#C8E7DA'/>
+      <text x='291' y='22' text-anchor='middle' fill='#167C59'>SIGNAL ONLY</text>
+    </g>
+  </g>
+
+  <g transform='translate(770 74)' filter='url(#shadow)' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif'>
+    <rect width='586' height='390' rx='28' fill='#FFFFFF' stroke='#E2E6E1'/>
+    <g transform='translate(30 28)'>
+      <text x='0' y='18' fill='#171A18' font-size='16' font-weight='700'>301080.SZ</text>
+      <text x='0' y='63' fill='#171A18' font-size='42' font-weight='750'>87.91</text>
+      <text x='116' y='62' fill='#15986A' font-size='14' font-weight='700'>+0.07%</text>
+      <circle cx='454' cy='14' r='5' fill='#39C88D'/>
+      <text x='468' y='19' fill='#747B76' font-size='12' font-weight='650'>LIVE</text>
+    </g>
+
+    <g transform='translate(28 112)'>
+      <rect width='530' height='200' rx='18' fill='#FBFCFA'/>
+      <rect width='530' height='200' rx='18' fill='url(#grid)'/>
+      <path d='M0 159L36 142L70 103L105 126L143 97L180 57L217 79L253 38L289 86L327 114L365 124L401 147L437 131L470 77L502 65L530 70V200H0Z' fill='url(#chartFill)'/>
+      <path d='M0 159L36 142L70 103L105 126L143 97L180 57L217 79L253 38L289 86L327 114L365 124L401 147L437 131L470 77L502 65L530 70' fill='none' stroke='#5B5CF0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>
+
+      <g transform='translate(253 38)'>
+        <circle r='9' fill='#FFFFFF' stroke='#E45164' stroke-width='3'/>
+        <path d='M0 -18v8M-5 -14L0 -9L5 -14' fill='none' stroke='#E45164' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
+        <rect x='-41' y='-46' width='82' height='22' rx='11' fill='#FFF0F2'/>
+        <text x='0' y='-31' text-anchor='middle' fill='#C84255' font-size='10' font-weight='700'>分时顶</text>
+      </g>
+
+      <g transform='translate(401 147)'>
+        <circle r='9' fill='#FFFFFF' stroke='#15986A' stroke-width='3'/>
+        <path d='M0 18v-8M-5 14L0 9L5 14' fill='none' stroke='#15986A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
+      </g>
+    </g>
+
+    <g transform='translate(28 330)'>
+      <rect width='530' height='40' rx='12' fill='#191D1A'/>
+      <circle cx='20' cy='20' r='5' fill='#FF7182'/>
+      <text x='34' y='25' fill='#F8FAF8' font-size='13' font-weight='700'>SELL · 分时顶确认</text>
+      <text x='438' y='25' fill='#AEB6B0' font-size='12'>置信度</text>
+      <text x='504' y='25' text-anchor='end' fill='#FF8D9B' font-size='13' font-weight='750'>92</text>
+    </g>
+  </g>
+
+  <text x='82' y='504' fill='#909792' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif' font-size='14'>只提醒 · 不下单 · 不使用未来数据</text>
+</svg>
