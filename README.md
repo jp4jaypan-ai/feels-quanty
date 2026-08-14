@@ -1,5 +1,5 @@
 <p align='center'>
-  <img src='./docs/assets/readme-hero.svg' alt='feels-quanty — intraday signal intelligence' width='100%' />
+  <img src='./docs/assets/readme-hero-v2.svg' alt='feels-quanty — buy low, sell high' width='100%' />
 </p>
 
 <h1 align='center'>feels-quanty</h1>
