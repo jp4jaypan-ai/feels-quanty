@@ -99,21 +99,23 @@
     </g>
 
     <g filter='url(#lineGlow)'>
-      <path d='M75 548C151 548 185 528 246 531C308 534 332 571 392 560C451 549 477 490 541 500C603 510 630 550 685 533C741 516 762 448 824 459C887 470 902 534 964 520C1027 506 1044 438 1112 450C1179 462 1211 512 1270 494C1329 476 1375 429 1525 438' fill='none' stroke='url(#lineGradient)' stroke-width='4' stroke-linecap='round'/>
+      <path d='M75 512C140 500 185 468 248 476C318 484 365 548 455 558C538 568 604 512 675 496C748 480 795 525 868 502C942 479 998 418 1085 410C1170 402 1214 470 1292 472C1370 474 1430 430 1525 422' fill='none' stroke='url(#lineGradient)' stroke-width='4' stroke-linecap='round'/>
     </g>
 
+    <path d='M485 548C655 520 880 432 1055 416' fill='none' stroke='#D7D0FF' stroke-opacity='0.22' stroke-width='2' stroke-dasharray='6 11'/>
+
     <g font-family='Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif'>
-      <g transform='translate(541 500)'>
+      <g transform='translate(1085 410)'>
         <circle r='18' fill='#FF6680' fill-opacity='0.16' filter='url(#softGlow)'/>
         <circle r='7' fill='#0A0B11' stroke='#FF7890' stroke-width='3'/>
         <path d='M0 -19V-10M-5 -15L0 -10L5 -15' fill='none' stroke='#FF7890' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
-        <text x='0' y='-34' text-anchor='middle' fill='#FF92A3' font-size='11' font-weight='700' letter-spacing='1.2'>SELL</text>
+        <text x='0' y='-34' text-anchor='middle' fill='#FF92A3' font-size='12' font-weight='700' letter-spacing='1'>高位 SELL</text>
       </g>
-      <g transform='translate(1112 450)'>
+      <g transform='translate(455 558)'>
         <circle r='18' fill='#59E0BE' fill-opacity='0.15' filter='url(#softGlow)'/>
         <circle r='7' fill='#0A0B11' stroke='#65E1C1' stroke-width='3'/>
         <path d='M0 19V10M-5 15L0 10L5 15' fill='none' stroke='#65E1C1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
-        <text x='0' y='38' text-anchor='middle' fill='#7DE7CC' font-size='11' font-weight='700' letter-spacing='1.2'>BUY</text>
+        <text x='0' y='38' text-anchor='middle' fill='#7DE7CC' font-size='12' font-weight='700' letter-spacing='1'>低位 BUY</text>
       </g>
     </g>
 
