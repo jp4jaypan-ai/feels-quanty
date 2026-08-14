@@ -41,6 +41,11 @@ next-env.d.ts
 /outputs/
 /work/
 
+# launcher build output
+/launcher/bin/
+/launcher/obj/
+/release/
+
 # python
 __pycache__/
 *.py[cod]

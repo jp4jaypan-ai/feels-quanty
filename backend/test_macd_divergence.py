@@ -86,7 +86,7 @@ def test_default_is_atr_normalised_multiscale_macdv():
     assert config['slow_period'] == 26
     assert config['signal_period'] == 9
     assert config['atr_period'] == 26
-    assert config['warmup_bars'] == 35
+    assert config['warmup_bars'] == 15
     scales = config['scales']
     assert [item['code'] for item in scales] == [
         'MICRO', 'SMALL', 'MEDIUM', 'LARGE']
@@ -104,7 +104,18 @@ def test_default_is_atr_normalised_multiscale_macdv():
     assert bounded['slow_period'] == 3
     assert bounded['signal_period'] == 2
     assert bounded['atr_period'] == 5
-    assert bounded['warmup_bars'] == 5
+    assert bounded['warmup_bars'] == 15
+
+
+def test_early_warmup_is_not_blocked_by_slow_period_or_atr_period():
+    engine = MacdDivergenceEngine()
+    values = [100.0 + index * 0.05 for index in range(15)]
+    feed(engine, values, 'EARLY.SZ')
+    state = engine.states['EARLY.SZ']
+    assert len(state['records']) == 15
+    assert state['atr'] is not None
+    assert engine.config['slow_period'] == 26
+    assert engine.config['atr_period'] == 26
 
 
 def test_macdv_formula_and_momentum_lifecycle_are_explicit():
@@ -189,6 +200,127 @@ def test_scale_and_momentum_can_confirm_without_requiring_divergence():
     assert result[1] is True
     assert result[2] is True
     assert result[5] is True
+
+
+def test_small_scale_can_emit_a_formal_alert_with_consensus():
+    engine = MacdDivergenceEngine()
+    state = engine._new_state()
+    for code in ('MICRO', 'SMALL', 'MEDIUM'):
+        state['scales'][code]['mode'] = 'DOWN'
+    state['scales']['LARGE']['mode'] = 'UP'
+    previous = {
+        'index': 1,
+        'macdv_histogram': 3.0,
+        'volume': 1000.0,
+    }
+    current = {
+        'index': 2,
+        'timestamp': time.mktime((2026, 8, 13, 10, 0, 0, 0, 0, -1)),
+        'time': '10:00:00',
+        'confirm_timestamp': time.mktime((2026, 8, 13, 10, 1, 0, 0, 0, -1)),
+        'confirm_time': '10:01:00',
+        'open': 100.0,
+        'high': 100.1,
+        'low': 99.7,
+        'close': 99.8,
+        'volume': 1000.0,
+        'macdv': 25.0,
+        'macdv_signal': 27.0,
+        'macdv_histogram': -2.0,
+        'macdv_slope': -5.0,
+        'momentum_stage': 'RETRACING',
+        'momentum_stage_label': u'上行动能回落',
+    }
+    state['records'] = [previous, current]
+    primary = {
+        'scale': engine.config['scales'][1],
+        'kind': 'TOP',
+        'side': 'SELL',
+        'threshold_pct': 0.25,
+        'reversal_pct': 0.25,
+        'leg_start': {'index': 0, 'timestamp': current['timestamp'] - 120,
+                      'time': '09:58:00', 'price': 99.5},
+        'leg_amplitude_pct': 0.30,
+        'leg_bars': 2,
+        'extreme': {'index': 1, 'timestamp': current['timestamp'] - 60,
+                    'time': '09:59:00', 'price': 99.8,
+                    'close': 99.8, 'macdv': 30.0,
+                    'macdv_signal': 28.0, 'macdv_histogram': 2.0,
+                    'momentum_stage': 'RALLYING',
+                    'momentum_stage_label': u'上行动能扩张'},
+        'previous': None,
+        'price_delta_pct': 0.0,
+        'divergence': False,
+        'divergence_delta': 0.0,
+    }
+    alert = engine._build_alert(
+        'SMALL-FORMAL.SZ', state, [primary], current)
+    assert alert['scale_code'] == 'SMALL'
+    assert alert['advice_level'] == 'CONFIRMED'
+    assert alert['signal_level'] == 'CONFIRMED'
+    assert alert['notification_kind'] == 'CONFIRMED'
+
+
+def test_micro_divergence_can_emit_an_early_alert_against_higher_scale_trend():
+    engine = MacdDivergenceEngine()
+    state = engine._new_state()
+    state['scales']['MICRO']['mode'] = 'DOWN'
+    for code in ('SMALL', 'MEDIUM', 'LARGE'):
+        state['scales'][code]['mode'] = 'UP'
+    previous = {
+        'index': 1,
+        'macdv_histogram': 3.0,
+        'volume': 1000.0,
+    }
+    current = {
+        'index': 2,
+        'timestamp': time.mktime((2026, 8, 13, 10, 0, 0, 0, 0, -1)),
+        'time': '10:00:00',
+        'confirm_timestamp': time.mktime((2026, 8, 13, 10, 1, 0, 0, 0, -1)),
+        'confirm_time': '10:01:00',
+        'open': 100.0,
+        'high': 100.1,
+        'low': 99.7,
+        'close': 99.8,
+        'volume': 1000.0,
+        'macdv': 25.0,
+        'macdv_signal': 27.0,
+        'macdv_histogram': -2.0,
+        'macdv_slope': -5.0,
+        'momentum_stage': 'RETRACING',
+        'momentum_stage_label': u'上行动能回落',
+    }
+    state['records'] = [previous, current]
+    primary = {
+        'scale': engine.config['scales'][0],
+        'kind': 'TOP',
+        'side': 'SELL',
+        'threshold_pct': 0.25,
+        'reversal_pct': 0.25,
+        'leg_start': {'index': 0, 'timestamp': current['timestamp'] - 120,
+                      'time': '09:58:00', 'price': 99.5},
+        'leg_amplitude_pct': 0.30,
+        'leg_bars': 2,
+        'extreme': {'index': 1, 'timestamp': current['timestamp'] - 60,
+                    'time': '09:59:00', 'price': 99.8,
+                    'close': 99.8, 'macdv': 30.0,
+                    'macdv_signal': 28.0, 'macdv_histogram': 2.0,
+                    'momentum_stage': 'RALLYING',
+                    'momentum_stage_label': u'上行动能扩张'},
+        'previous': None,
+        'price_delta_pct': 0.55,
+        'divergence': True,
+        'divergence_delta': 18.0,
+    }
+    alert = engine._build_alert(
+        'MICRO-EARLY.SZ', state, [primary], current)
+    assert alert['scale_code'] == 'MICRO'
+    assert alert['alert_tier'] == 'EARLY'
+    assert alert['advice_level'] == 'CONFIRMED'
+    assert alert['notification_kind'] == 'CONFIRMED'
+    assert alert['action_label'] == u'卖出早期提醒'
+    assert alert['divergence_type'] == 'BEARISH_REGULAR'
+    assert alert['confidence'] >= 65
 
 
 def test_small_countertrend_and_late_entry_are_downgraded():

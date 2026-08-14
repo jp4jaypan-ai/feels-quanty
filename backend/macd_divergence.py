@@ -5,6 +5,7 @@ import datetime
 
 
 STRATEGY_VERSION = 'MDC-MACDV-2.0'
+MIN_WARMUP_BARS = 15
 
 try:
     unicode
@@ -85,14 +86,18 @@ def default_macd_config():
         'slow_period': 26,
         'signal_period': 9,
         'atr_period': 26,
-        'warmup_bars': 35,
+        # Keep standard 12/26/9 MACD-V, but allow intraday observation after
+        # 15 completed decision bars. ATR is seeded from available samples.
+        'warmup_bars': MIN_WARMUP_BARS,
         'records_limit': 480,
         'volume_lookback': 20,
         'volume_expansion_ratio': 1.20,
         'candidate_consensus_pct': 30,
         'confirmed_consensus_pct': 55,
+        'micro_consensus_pct': 10,
         'candidate_min_confidence': 62,
         'confirmed_min_confidence': 78,
+        'micro_confirmed_min_confidence': 65,
         'medium_min_leg_bars': 4,
         'large_min_leg_bars': 6,
         'medium_leg_threshold_mult': 1.25,
@@ -140,10 +145,9 @@ def normalize_macd_config(payload=None):
         config['fast_period'] + 1, int(number(config.get('slow_period'), 26)))
     config['signal_period'] = max(2, int(number(config.get('signal_period'), 9)))
     config['atr_period'] = max(5, int(number(config.get('atr_period'), 26)))
-    minimum_warmup = max(
-        config['slow_period'] + config['signal_period'], config['atr_period'])
     config['warmup_bars'] = max(
-        minimum_warmup, int(number(config.get('warmup_bars'), minimum_warmup)))
+        MIN_WARMUP_BARS,
+        int(number(config.get('warmup_bars'), MIN_WARMUP_BARS)))
     config['records_limit'] = max(
         120, int(number(config.get('records_limit'), 480)))
     config['volume_lookback'] = max(
@@ -159,11 +163,17 @@ def normalize_macd_config(payload=None):
     config['confirmed_consensus_pct'] = max(
         config['candidate_consensus_pct'],
         min(100, int(number(config.get('confirmed_consensus_pct'), 55))))
+    config['micro_consensus_pct'] = max(
+        10, min(config['confirmed_consensus_pct'],
+                int(number(config.get('micro_consensus_pct'), 10))))
     config['candidate_min_confidence'] = max(
         50, min(90, int(number(config.get('candidate_min_confidence'), 62))))
     config['confirmed_min_confidence'] = max(
         config['candidate_min_confidence'],
         min(95, int(number(config.get('confirmed_min_confidence'), 78))))
+    config['micro_confirmed_min_confidence'] = max(
+        50, min(config['confirmed_min_confidence'],
+                int(number(config.get('micro_confirmed_min_confidence'), 65))))
     config['medium_min_leg_bars'] = max(
         2, int(number(config.get('medium_min_leg_bars'), 4)))
     config['large_min_leg_bars'] = max(
@@ -542,8 +552,16 @@ class MacdDivergenceEngine(object):
                 primary['threshold_pct'] * config['medium_leg_threshold_mult'])
         else:
             structure_ok = primary['leg_bars'] >= 2
+        micro_early = (
+            rank == 1 and structure_ok and divergence and momentum_support and
+            consensus >= config['micro_consensus_pct'] and not late)
         advice = 'WATCH'
-        if (rank >= 3 and structure_ok and momentum_support and
+        # MICRO is an early local-divergence channel. It deliberately does
+        # not wait for higher-scale alignment, but still requires a causal
+        # same-scale divergence and a confirmed MACD-V turn.
+        if micro_early:
+            advice = 'CONFIRMED'
+        elif (rank >= 2 and structure_ok and momentum_support and
                 consensus >= config['confirmed_consensus_pct'] and
                 not conflict and not late):
             advice = 'CONFIRMED'
@@ -553,7 +571,9 @@ class MacdDivergenceEngine(object):
             advice = 'CANDIDATE'
         elif (rank >= 2 and divergence and momentum_support and not conflict):
             advice = 'CANDIDATE'
-        if extreme_late or conflict or rank == 1:
+        if (extreme_late or
+                (conflict and rank != 1) or
+                (rank == 1 and not micro_early)):
             advice = 'WATCH'
         elif late and advice == 'CONFIRMED':
             advice = 'CANDIDATE'
@@ -578,10 +598,12 @@ class MacdDivergenceEngine(object):
         divergence = bool(divergence_events)
         advice, momentum_support, momentum_cross, late, conflict, structure_ok = self._advice(
             state, side, primary, record, consensus, divergence)
-        if primary['scale']['rank'] == 1:
+        if primary['scale']['rank'] == 1 and advice == 'WATCH':
             return None
         if primary['scale']['rank'] == 2 and advice == 'WATCH':
             return None
+        early_alert = (
+            primary['scale']['rank'] == 1 and advice == 'CONFIRMED')
         regime, regime_label = self._regime(state)
         volume_ratio = self._volume_ratio(state, record)
         volume_support = volume_ratio >= self.config['volume_expansion_ratio']
@@ -601,7 +623,10 @@ class MacdDivergenceEngine(object):
             score -= 15
         confidence = max(35, min(95, int(round(score))))
         if advice == 'CONFIRMED':
-            confidence = max(confidence, self.config['confirmed_min_confidence'])
+            minimum_confidence = (
+                self.config['micro_confirmed_min_confidence']
+                if early_alert else self.config['confirmed_min_confidence'])
+            confidence = max(confidence, minimum_confidence)
         elif advice == 'CANDIDATE':
             confidence = max(confidence, self.config['candidate_min_confidence'])
 
@@ -619,6 +644,10 @@ class MacdDivergenceEngine(object):
             'CANDIDATE': u'%s候选' % (u'卖出' if side == 'SELL' else u'买入'),
             'CONFIRMED': u'%s建议' % (u'卖出' if side == 'SELL' else u'买入'),
         }[advice]
+        if early_alert:
+            advice_text = u'早期'
+            action_text = u'%s早期提醒' % (
+                u'卖出' if side == 'SELL' else u'买入')
         confirmations = [
             u'%s方向变化阈值 %.3f%% 已完成' % (
                 primary['scale']['label'], primary['threshold_pct']),
@@ -627,14 +656,18 @@ class MacdDivergenceEngine(object):
             u'MACD-V %.1f，%s' % (
                 record['macdv'], record['momentum_stage_label']),
         ]
+        if early_alert:
+            confirmations.append(u'微级背离早期提醒，高级别趋势尚未要求同步确认')
         if momentum_support:
             confirmations.append(u'MACD-V 柱体与斜率已同向转折')
         if divergence:
             confirmations.append(u'同级价格与 MACD-V 出现常规背离')
         if volume_support:
             confirmations.append(u'确认 K 量能为近期中位数 %.2f 倍' % volume_ratio)
-        if conflict:
+        if conflict and not early_alert:
             confirmations.append(u'与高级别趋势冲突，已降级为观察')
+        elif conflict and early_alert:
+            confirmations.append(u'高级别趋势尚未同步，保留为微级早期提醒')
         if late:
             confirmations.append(u'动能已进入反向区域，避免追卖或追买，已降级')
         if not structure_ok:
@@ -648,6 +681,7 @@ class MacdDivergenceEngine(object):
             primary['leg_amplitude_pct'], primary['leg_bars'],
             primary['threshold_pct'], primary['reversal_pct'], consensus,
             record['macdv'], record['momentum_stage_label'],
+            u'微级早期提醒。' if early_alert else
             u'正式提醒。' if advice == 'CONFIRMED' else u'仅前端观察，不弹窗。')
 
         event_id = 'MDC-MACDV-%s-%s-%d' % (
@@ -686,6 +720,7 @@ class MacdDivergenceEngine(object):
             'event_state': event_state,
             'signal_level': 'CONFIRMED' if advice == 'CONFIRMED' else 'CANDIDATE',
             'notification_kind': notification_kind,
+            'alert_tier': 'EARLY' if early_alert else 'FORMAL',
             'advice_level': advice,
             'advice_label': advice_text,
             'action_label': action_text,
@@ -779,8 +814,6 @@ class MacdDivergenceEngine(object):
             return None
         state['last_timestamp'] = bar['timestamp']
         record = self._append_indicator(state, bar)
-        if len(state['tr_values']) < self.config['atr_period']:
-            return None
         events = []
         for spec in self.config['scales']:
             event = self._directional_change(

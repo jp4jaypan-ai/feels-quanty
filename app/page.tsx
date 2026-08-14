@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 type RuleConfig = {
   strategy_version: "V4.0";
@@ -194,6 +194,7 @@ type MacdAlert = {
   signal_level: SignalLevel;
   notification_kind: "CONFIRMED" | "NONE";
   advice_level: "WATCH" | "CANDIDATE" | "CONFIRMED";
+  alert_tier?: "EARLY" | "FORMAL";
   advice_label: string;
   action_label: string;
   code: string;
@@ -275,6 +276,7 @@ type EventView = Omit<TurningEvent, "strategy_version"> & {
   macdv?: number;
   divergence_label?: string;
   advice_level?: MacdAlert["advice_level"];
+  alert_tier?: MacdAlert["alert_tier"];
   action_label?: string;
   leg_amplitude_pct?: number;
   leg_bars?: number;
@@ -471,6 +473,7 @@ function macdAlertToEvent(alert: MacdAlert): EventView {
     strategy_version: alert.strategy_version || "MDC-MACDV-2.0",
     strategy_kind: "MACD",
     strategy_label: "多尺度动能",
+    alert_tier: alert.alert_tier || "FORMAL",
     scale_code: alert.scale_code,
     scale_label: alert.scale_label,
     scale_threshold_pct: alert.scale_threshold_pct,
@@ -517,7 +520,9 @@ function eventTitle(event: EventView) {
   if (event.strategy_kind === "MACD") {
     const scale = event.scale_label || "自适应";
     const point = event.turning_point === "TOP" ? "顶部" : "底部";
-    if (event.event_state === "CONFIRMED") return scale + point + "确认";
+    if (event.event_state === "CONFIRMED") {
+      return scale + point + (event.alert_tier === "EARLY" ? "早期提醒" : "确认");
+    }
     if (event.event_state === "STRENGTHENING") return scale + point + "候选";
     return scale + point + "观察";
   }
@@ -530,7 +535,8 @@ function eventTitle(event: EventView) {
 
 function eventChartLabel(event: EventView) {
   if (event.strategy_kind === "MACD") {
-    return (event.scale_label || "尺度") + eventPointLabel(event.turning_point);
+    return (event.scale_label || "尺度") + eventPointLabel(event.turning_point)
+      + (event.alert_tier === "EARLY" ? "预警" : "");
   }
   if (event.event_state === "INVALIDATED") return "已失效";
   if (event.event_state === "STRENGTHENING") return "增强" + eventPointLabel(event.turning_point);
@@ -553,11 +559,19 @@ function eventMeta(event: EventView, code: string) {
   if (event.strategy_kind === "MACD") {
     return [
       code,
+      event.alert_tier === "EARLY" ? "早期背离" : null,
       event.momentum_stage_label,
       event.consensus_pct != null ? "一致 " + metricText(event.consensus_pct, 0, "%") : null,
     ].filter(Boolean).join(" · ");
   }
   return code + " · " + channelLabel(event);
+}
+
+function eventActionLabel(event: EventView) {
+  if (event.strategy_kind === "MACD" && event.alert_tier === "EARLY") {
+    return event.side === "SELL" ? "卖出早期提醒" : "买入早期提醒";
+  }
+  return event.side === "SELL" ? "卖出建议" : "买入建议";
 }
 async function requestJson<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -571,6 +585,29 @@ async function requestJson<T>(path: string, options?: RequestInit): Promise<T> {
   const payload = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`);
   return payload;
+}
+
+const CHART_MIN_VIEW_BARS = 24;
+const CHART_DEFAULT_VIEW_BARS = 240;
+
+type ChartViewport = {
+  start: number;
+  size: number;
+};
+
+function normalizeChartViewport(start: number, size: number, count: number): ChartViewport {
+  if (count <= 0) return { start: 0, size: 0 };
+  const minimum = Math.min(CHART_MIN_VIEW_BARS, count);
+  const nextSize = Math.min(Math.max(Math.round(size || CHART_DEFAULT_VIEW_BARS), minimum), count);
+  const maxStart = Math.max(0, count - nextSize);
+  return {
+    start: Math.min(Math.max(Math.round(start), 0), maxStart),
+    size: nextSize,
+  };
+}
+
+function sameChartViewport(left: ChartViewport, right: ChartViewport) {
+  return left.start === right.start && left.size === right.size;
 }
 
 function PriceChart({
@@ -591,6 +628,114 @@ function PriceChart({
   macdEnabled: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [viewport, setViewport] = useState<ChartViewport>({ start: 0, size: CHART_DEFAULT_VIEW_BARS });
+  const [dragging, setDragging] = useState(false);
+  const viewportRef = useRef<ChartViewport>(viewport);
+  const dragRef = useRef<{ pointerId: number; clientX: number; start: number } | null>(null);
+  const followLatestRef = useRef(true);
+  const usableBarCount = bars.filter((bar) => Number.isFinite(bar.close) && bar.close > 0).length;
+
+  const commitViewport = (next: ChartViewport, followLatest = false) => {
+    const normalized = normalizeChartViewport(next.start, next.size, usableBarCount);
+    followLatestRef.current = followLatest;
+    viewportRef.current = normalized;
+    setViewport((current) => sameChartViewport(current, normalized) ? current : normalized);
+  };
+
+  const resetLatest = () => {
+    const size = Math.min(CHART_DEFAULT_VIEW_BARS, usableBarCount);
+    commitViewport({ start: Math.max(0, usableBarCount - size), size }, true);
+  };
+
+  const showAll = () => {
+    commitViewport({ start: 0, size: usableBarCount }, false);
+  };
+
+  const panChart = (offset: number) => {
+    const current = normalizeChartViewport(viewportRef.current.start, viewportRef.current.size, usableBarCount);
+    const next = normalizeChartViewport(current.start + offset, current.size, usableBarCount);
+    commitViewport(next, next.start + next.size >= usableBarCount);
+  };
+
+  const zoomChart = (factor: number, clientX?: number) => {
+    if (usableBarCount < 2) return;
+    const current = normalizeChartViewport(viewportRef.current.start, viewportRef.current.size, usableBarCount);
+    const nextSize = Math.min(
+      Math.max(Math.round(current.size * factor), Math.min(CHART_MIN_VIEW_BARS, usableBarCount)),
+      usableBarCount,
+    );
+    const canvas = canvasRef.current;
+    const bounds = canvas?.getBoundingClientRect();
+    const chartWidth = Math.max((bounds?.width ?? 0) - 36, 1);
+    const ratio = bounds && clientX != null
+      ? Math.max(0, Math.min(1, (clientX - bounds.left - 18) / chartWidth))
+      : 0.5;
+    const anchor = current.start + ratio * Math.max(0, current.size - 1);
+    commitViewport({
+      start: anchor - ratio * Math.max(0, nextSize - 1),
+      size: nextSize,
+    }, false);
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0 || usableBarCount < 2) return;
+    dragRef.current = { pointerId: event.pointerId, clientX: event.clientX, start: viewportRef.current.start };
+    followLatestRef.current = false;
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const current = normalizeChartViewport(viewportRef.current.start, viewportRef.current.size, usableBarCount);
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const chartWidth = Math.max(bounds.width - 36, 1);
+    const deltaBars = ((drag.clientX - event.clientX) / chartWidth) * Math.max(1, current.size - 1);
+    commitViewport({ start: drag.start + deltaBars, size: current.size }, false);
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    if (event.currentTarget.hasPointerCapture(drag.pointerId)) event.currentTarget.releasePointerCapture(drag.pointerId);
+    dragRef.current = null;
+    setDragging(false);
+    const current = viewportRef.current;
+    followLatestRef.current = current.start + current.size >= usableBarCount;
+  };
+
+  useEffect(() => {
+    followLatestRef.current = true;
+    dragRef.current = null;
+    setDragging(false);
+    const size = Math.min(CHART_DEFAULT_VIEW_BARS, usableBarCount);
+    const next = normalizeChartViewport(Math.max(0, usableBarCount - size), size, usableBarCount);
+    viewportRef.current = next;
+    setViewport(next);
+  }, [code]);
+
+  useEffect(() => {
+    const current = viewportRef.current;
+    const size = Math.min(current.size || CHART_DEFAULT_VIEW_BARS, usableBarCount);
+    const start = followLatestRef.current ? Math.max(0, usableBarCount - size) : current.start;
+    const next = normalizeChartViewport(start, size, usableBarCount);
+    if (!sameChartViewport(current, next)) {
+      viewportRef.current = next;
+      setViewport(next);
+    }
+  }, [usableBarCount]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const handleNativeWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      zoomChart(event.deltaY < 0 ? 0.78 : 1.28, event.clientX);
+    };
+    canvas.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleNativeWheel);
+  }, [usableBarCount, viewport]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -628,7 +773,9 @@ function PriceChart({
         context.stroke();
       }
 
-      const usableBars = bars.filter((bar) => Number.isFinite(bar.close) && bar.close > 0);
+      const allBars = bars.filter((bar) => Number.isFinite(bar.close) && bar.close > 0);
+      const currentViewport = normalizeChartViewport(viewport.start, viewport.size, allBars.length);
+      const usableBars = allBars.slice(currentViewport.start, currentViewport.start + currentViewport.size);
       if (usableBars.length < 2) {
         context.font = "600 12px Arial";
         context.fillStyle = "rgba(35, 42, 38, 0.62)";
@@ -641,14 +788,19 @@ function PriceChart({
         return;
       }
 
-      const visibleEvents = eventViewsForCode(
+      const allEvents = eventViewsForCode(
         turningEvents,
         signals,
         macdAlerts,
         code,
         swingEnabled,
         macdEnabled,
-      ).slice(0, 10);
+      );
+      const firstTimestamp = usableBars[0].timestamp;
+      const lastTimestamp = usableBars[usableBars.length - 1].timestamp;
+      const visibleEvents = allEvents.filter((event) => (
+        event.extreme_timestamp >= firstTimestamp && event.extreme_timestamp <= lastTimestamp
+      )).slice(0, 20);
       const plottedPrices = usableBars.flatMap((bar) => [bar.low, bar.high, bar.close]);
       visibleEvents.forEach((event) => {
         [event.extreme_price, event.observed_price, event.confirm_price].forEach((value) => {
@@ -841,9 +993,39 @@ function PriceChart({
     draw();
     window.addEventListener("resize", draw);
     return () => window.removeEventListener("resize", draw);
-  }, [bars, turningEvents, signals, macdAlerts, code, swingEnabled, macdEnabled]);
+  }, [bars, turningEvents, signals, macdAlerts, code, swingEnabled, macdEnabled, viewport]);
 
-  return <div className="chart-canvas-wrap"><canvas ref={canvasRef} aria-label={`${code || "标的"} 实时价格图`} /></div>;
+  const currentViewport = normalizeChartViewport(viewport.start, viewport.size, usableBarCount);
+  const chartBars = bars
+    .filter((bar) => Number.isFinite(bar.close) && bar.close > 0)
+    .slice(currentViewport.start, currentViewport.start + currentViewport.size);
+  const chartWindow = chartBars.length >= 2
+    ? `${chartBars[0].time} — ${chartBars[chartBars.length - 1].time}`
+    : '等待数据';
+
+  return (
+    <div className='chart-canvas-wrap'>
+      <div className='chart-tools' aria-label='图表视窗控制'>
+        <span title='滚轮缩放，拖动平移'>{chartWindow} · {currentViewport.size}/{usableBarCount}</span>
+        <button type='button' onClick={() => panChart(-Math.max(1, Math.round(currentViewport.size * 0.35)))} aria-label='向左平移'>‹</button>
+        <button type='button' onClick={() => panChart(Math.max(1, Math.round(currentViewport.size * 0.35)))} aria-label='向右平移'>›</button>
+        <button type='button' onClick={() => zoomChart(0.78)} aria-label='放大图表'>＋</button>
+        <button type='button' onClick={() => zoomChart(1.28)} aria-label='缩小图表'>−</button>
+        <button type='button' onClick={showAll} aria-label='显示全部数据'>全量</button>
+        <button type='button' onClick={resetLatest} aria-label='回到最新'>最新</button>
+      </div>
+      <canvas
+        ref={canvasRef}
+        className={dragging ? 'dragging' : ''}
+        aria-label={`${code || '标的'} 实时价格图`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onDoubleClick={resetLatest}
+      />
+    </div>
+  );
 }
 
 function AppMark() {
@@ -903,7 +1085,10 @@ export default function Home() {
     swingEnabled,
     macdEnabled,
   );
-  const visibleEvents = selectedEvents.slice(0, 6);
+  // The chart is intentionally a rolling intraday window. The activity feed
+  // is the durable view of the session and must not inherit the chart's
+  // viewport or an arbitrary six-row truncation.
+  const visibleEvents = selectedEvents;
   const activeCandidateCount = selectedEvents.filter((event) => event.event_state === "CANDIDATE" || event.event_state === "STRENGTHENING").length;
   const confirmedEventCount = selectedEvents.filter((event) => event.event_state === "CONFIRMED").length;
 
@@ -1150,14 +1335,14 @@ export default function Home() {
               <div className='signal-stages' aria-label='信号阶段'>
                 {['观察', '增强', '确认'].map((label, index) => <span className={stateRailIndex === index ? 'current' : stateRailIndex > index ? 'done' : ''} key={label}><i />{label}</span>)}
               </div>
-              <div className={'decision-call ' + (decisionIsConfirmed ? 'confirmed' : '')}><strong>{decisionIsConfirmed ? currentEvent?.side === 'SELL' ? '卖出建议' : '买入建议' : '继续观察'}</strong><span>{decisionIsConfirmed ? currentEvent?.strategy_kind === 'MACD' ? (currentEvent.scale_label || '自动定级') + ' · 动能已确认' : '策略已确认' : '候选不是操作'}</span></div>
+              <div className={'decision-call ' + (decisionIsConfirmed ? 'confirmed' : '')}><strong>{decisionIsConfirmed && currentEvent ? eventActionLabel(currentEvent) : '继续观察'}</strong><span>{decisionIsConfirmed ? currentEvent?.alert_tier === 'EARLY' ? '微级背离早期提醒' : currentEvent?.strategy_kind === 'MACD' ? (currentEvent.scale_label || '自动定级') + ' · 动能已确认' : '策略已确认' : '候选不是操作'}</span></div>
             </aside>
           </div>
         </section>
 
         <section className='activity' aria-labelledby='activity-title'>
-          <header><div><h2 id='activity-title'>事件</h2><span>{activeCandidateCount} 观察 · {confirmedEventCount} 确认</span></div></header>
-          <div className='event-list'>
+            <header><div><h2 id='activity-title'>事件</h2><span>{selectedEvents.length} 条 · {activeCandidateCount} 观察 · {confirmedEventCount} 确认</span></div></header>
+            <div className='event-list' aria-label='历史事件列表'>
             {visibleEvents.length === 0 && <div className='event-empty'><i />{!anyStrategyEnabled ? '策略已关闭' : !anyStrategyReady && monitoring ? '预热中' : '暂无事件'}</div>}
             {visibleEvents.map((event) => {
               const isConfirmed = event.event_state === 'CONFIRMED';

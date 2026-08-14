@@ -46,7 +46,10 @@ except NameError:
 HOST = os.environ.get('QUANT_HOST', '127.0.0.1')
 PORT = int(os.environ.get('QUANT_PORT', '8765'))
 POLL_SECONDS = max(0.25, float(os.environ.get('QUANT_POLL_SECONDS', '1.0')))
-BUCKET_SECONDS, MAX_BARS, MAX_SIGNALS, STALE_SECONDS = 30, 240, 100, 15
+# 30-second bars for a full A-share session are roughly 480 points. Keep
+# headroom for clock irregularities and short pauses so the chart can replay
+# the whole day instead of rolling off the morning session after two hours.
+BUCKET_SECONDS, MAX_BARS, MAX_SIGNALS, STALE_SECONDS = 30, 600, 500, 15
 CACHE_VERSION, MAX_DECISION_BARS = 1, 360
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if not isinstance(PROJECT_ROOT, unicode):
@@ -164,7 +167,7 @@ class IntradayCache(object):
         if isinstance(payload.get('turning_events'), list):
             clean_payload['turning_events'] = [
                 dict(item) for item in payload['turning_events'] if isinstance(item, dict)
-            ][:100]
+            ][:MAX_SIGNALS]
         if isinstance(payload.get('macd_alerts'), list):
             clean_payload['macd_alerts'] = [
                 dict(item) for item in payload['macd_alerts'] if isinstance(item, dict)
@@ -682,8 +685,8 @@ class WindMonitor(object):
             self.state.turning_events = [
                 dict(item) for item in raw_events
                 if (isinstance(item, dict) and item.get('code') in codes and
-                    item.get('event_state') not in ('CANDIDATE', 'STRENGTHENING'))
-            ][:100]
+                     item.get('event_state') not in ('CANDIDATE', 'STRENGTHENING'))
+            ][:MAX_SIGNALS]
             self.state.macd_alerts = [
                 dict(item) for item in raw_macd_alerts
                 if (isinstance(item, dict) and item.get('code') in codes and
@@ -697,7 +700,10 @@ class WindMonitor(object):
             for item in decisions:
                 analytics, ignored_signal = self.engine.process(code, item, config)
                 self.engine.drain_event_updates(code)
-                self.macd_engine.process(code, item)
+                macd_alert = self.macd_engine.process(code, item)
+                if (macd_alert is not None and
+                        config.get('macd_strategy_enabled', True)):
+                    self._upsert_macd_alert(macd_alert)
             self.engine.drain_event_updates(code)
             self.engine.discard_event_state(code)
             if analytics is not None:
@@ -792,7 +798,7 @@ class WindMonitor(object):
             self.state.turning_events = [
                 item for item in self.state.turning_events if item.get('event_id') != event_id]
             self.state.turning_events.insert(0, dict(event))
-            self.state.turning_events = self.state.turning_events[:100]
+            self.state.turning_events = self.state.turning_events[:MAX_SIGNALS]
 
     def _upsert_macd_alert(self, event):
         event_id = event.get('event_id') or event.get('id')
@@ -1084,7 +1090,8 @@ class WindMonitor(object):
                 title_label = u'%s · %s' % (
                     signal.get('module_label') or (
                         u'多尺度顶部确认' if sell else u'多尺度底部确认'),
-                    u'卖出建议' if sell else u'买入建议')
+                    signal.get('action_label') or (
+                        u'卖出建议' if sell else u'买入建议'))
                 message = (
                     u'%s %.2f（%s）；%s阈值 %.3f%%，'
                     u'波段 %.3f%% / %s 根 K，多尺度一致度 %.0f%%；'
