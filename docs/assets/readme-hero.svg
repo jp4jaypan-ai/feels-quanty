@@ -1,88 +1,137 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='1440' height='540' viewBox='0 0 1440 540' role='img' aria-labelledby='title desc'>
-  <title id='title'>feels-quanty — WindPy 盘中信号工作台</title>
-  <desc id='desc'>本地优先的分时顶底与多尺度动能提醒工具</desc>
+<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='760' viewBox='0 0 1600 760' role='img' aria-labelledby='title desc'>
+  <title id='title'>feels-quanty — Intraday Signal Intelligence</title>
+  <desc id='desc'>发布会风格的 feels-quanty 主视觉，展示分时顶底、MACD 背离与本地实时提醒</desc>
   <defs>
-    <linearGradient id='paper' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0' stop-color='#F8F9F6'/>
-      <stop offset='1' stop-color='#EEF0EC'/>
+    <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0' stop-color='#05060A'/>
+      <stop offset='0.48' stop-color='#090B13'/>
+      <stop offset='1' stop-color='#040507'/>
     </linearGradient>
-    <linearGradient id='chartFill' x1='0' y1='0' x2='0' y2='1'>
-      <stop offset='0' stop-color='#5B5CF0' stop-opacity='.22'/>
-      <stop offset='1' stop-color='#5B5CF0' stop-opacity='0'/>
+    <radialGradient id='violetHalo' cx='50%' cy='20%' r='70%'>
+      <stop offset='0' stop-color='#7C65FF' stop-opacity='0.34'/>
+      <stop offset='0.45' stop-color='#4932D5' stop-opacity='0.10'/>
+      <stop offset='1' stop-color='#090B13' stop-opacity='0'/>
+    </radialGradient>
+    <radialGradient id='blueHalo' cx='50%' cy='50%' r='50%'>
+      <stop offset='0' stop-color='#55D7FF' stop-opacity='0.28'/>
+      <stop offset='1' stop-color='#55D7FF' stop-opacity='0'/>
+    </radialGradient>
+    <linearGradient id='titleGradient' x1='0' y1='0' x2='1' y2='0'>
+      <stop offset='0' stop-color='#FFFFFF'/>
+      <stop offset='0.55' stop-color='#F1EEFF'/>
+      <stop offset='1' stop-color='#B9B0FF'/>
     </linearGradient>
-    <pattern id='grid' width='72' height='54' patternUnits='userSpaceOnUse'>
-      <path d='M72 0H0V54' fill='none' stroke='#DDE1DC' stroke-width='1'/>
+    <linearGradient id='lineGradient' x1='0' y1='0' x2='1' y2='0'>
+      <stop offset='0' stop-color='#5D67FF' stop-opacity='0'/>
+      <stop offset='0.18' stop-color='#7772FF'/>
+      <stop offset='0.52' stop-color='#C187FF'/>
+      <stop offset='0.82' stop-color='#49D8FF'/>
+      <stop offset='1' stop-color='#49D8FF' stop-opacity='0'/>
+    </linearGradient>
+    <linearGradient id='beam' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0' stop-color='#A997FF' stop-opacity='0.20'/>
+      <stop offset='1' stop-color='#A997FF' stop-opacity='0'/>
+    </linearGradient>
+    <linearGradient id='stage' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0' stop-color='#FFFFFF' stop-opacity='0.10'/>
+      <stop offset='1' stop-color='#FFFFFF' stop-opacity='0'/>
+    </linearGradient>
+    <pattern id='floorGrid' width='80' height='42' patternUnits='userSpaceOnUse'>
+      <path d='M80 0H0V42' fill='none' stroke='#A99DFF' stroke-opacity='0.08' stroke-width='1'/>
     </pattern>
-    <filter id='shadow' x='-20%' y='-20%' width='140%' height='160%'>
-      <feDropShadow dx='0' dy='24' stdDeviation='28' flood-color='#171A18' flood-opacity='.10'/>
+    <filter id='softGlow' x='-100%' y='-100%' width='300%' height='300%'>
+      <feGaussianBlur stdDeviation='18'/>
     </filter>
+    <filter id='lineGlow' x='-20%' y='-100%' width='140%' height='300%'>
+      <feGaussianBlur stdDeviation='7' result='blur'/>
+      <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+    </filter>
+    <filter id='logoShadow' x='-80%' y='-80%' width='260%' height='260%'>
+      <feDropShadow dx='0' dy='10' stdDeviation='14' flood-color='#7667FF' flood-opacity='0.45'/>
+    </filter>
+    <clipPath id='frame'><rect width='1600' height='760' rx='32'/></clipPath>
   </defs>
 
-  <rect width='1440' height='540' rx='34' fill='url(#paper)'/>
-  <circle cx='1258' cy='30' r='250' fill='#EEEEFF'/>
-  <circle cx='112' cy='560' r='230' fill='#E9F7F1'/>
+  <g clip-path='url(#frame)'>
+    <rect width='1600' height='760' fill='url(#bg)'/>
+    <rect width='1600' height='760' fill='url(#violetHalo)'/>
+    <ellipse cx='1310' cy='280' rx='430' ry='380' fill='url(#blueHalo)' opacity='0.46'/>
+    <ellipse cx='270' cy='315' rx='420' ry='390' fill='url(#violetHalo)' opacity='0.34'/>
 
-  <g transform='translate(82 72)'>
-    <rect width='48' height='48' rx='14' fill='#171A18'/>
-    <circle cx='24' cy='24' r='6' fill='#F8F9F6'/>
-    <path d='M24 11v7M24 30v7M11 24h7M30 24h7' stroke='#F8F9F6' stroke-width='2.5' stroke-linecap='round'/>
-    <text x='66' y='33' fill='#171A18' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif' font-size='30' font-weight='700' letter-spacing='-.5'>feels-quanty</text>
-  </g>
+    <path d='M505 -40L712 620H320Z' fill='url(#beam)' opacity='0.50'/>
+    <path d='M1090 -80L1285 620H870Z' fill='url(#beam)' opacity='0.24'/>
+    <path d='M785 -100L930 620H645Z' fill='url(#beam)' opacity='0.18'/>
 
-  <g transform='translate(82 168)' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif'>
-    <text fill='#171A18' font-size='62' font-weight='750' letter-spacing='-2'>
-      <tspan x='0' y='0'>看见转折，</tspan>
-      <tspan x='0' y='72'>再做决定。</tspan>
-    </text>
-    <text x='2' y='184' fill='#747B76' font-size='22'>WindPy 实时量价 · 分时顶底 · 多尺度 MACD-V</text>
-
-    <g transform='translate(0 224)' font-size='14' font-weight='650' letter-spacing='.5'>
-      <rect width='112' height='34' rx='17' fill='#171A18'/>
-      <text x='56' y='22' text-anchor='middle' fill='#FFFFFF'>LOCAL-FIRST</text>
-      <rect x='122' width='96' height='34' rx='17' fill='#EEEEFF' stroke='#D8D8FB'/>
-      <text x='170' y='22' text-anchor='middle' fill='#5152C8'>CAUSAL</text>
-      <rect x='228' width='126' height='34' rx='17' fill='#E9F7F1' stroke='#C8E7DA'/>
-      <text x='291' y='22' text-anchor='middle' fill='#167C59'>SIGNAL ONLY</text>
-    </g>
-  </g>
-
-  <g transform='translate(770 74)' filter='url(#shadow)' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif'>
-    <rect width='586' height='390' rx='28' fill='#FFFFFF' stroke='#E2E6E1'/>
-    <g transform='translate(30 28)'>
-      <text x='0' y='18' fill='#171A18' font-size='16' font-weight='700'>301080.SZ</text>
-      <text x='0' y='63' fill='#171A18' font-size='42' font-weight='750'>87.91</text>
-      <text x='116' y='62' fill='#15986A' font-size='14' font-weight='700'>+0.07%</text>
-      <circle cx='454' cy='14' r='5' fill='#39C88D'/>
-      <text x='468' y='19' fill='#747B76' font-size='12' font-weight='650'>LIVE</text>
+    <g opacity='0.60'>
+      <circle cx='800' cy='418' r='162' fill='none' stroke='#8B7DFF' stroke-opacity='0.10'/>
+      <circle cx='800' cy='418' r='214' fill='none' stroke='#8B7DFF' stroke-opacity='0.07'/>
+      <circle cx='800' cy='418' r='270' fill='none' stroke='#8B7DFF' stroke-opacity='0.045'/>
     </g>
 
-    <g transform='translate(28 112)'>
-      <rect width='530' height='200' rx='18' fill='#FBFCFA'/>
-      <rect width='530' height='200' rx='18' fill='url(#grid)'/>
-      <path d='M0 159L36 142L70 103L105 126L143 97L180 57L217 79L253 38L289 86L327 114L365 124L401 147L437 131L470 77L502 65L530 70V200H0Z' fill='url(#chartFill)'/>
-      <path d='M0 159L36 142L70 103L105 126L143 97L180 57L217 79L253 38L289 86L327 114L365 124L401 147L437 131L470 77L502 65L530 70' fill='none' stroke='#5B5CF0' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>
+    <ellipse cx='800' cy='690' rx='670' ry='178' fill='url(#stage)' opacity='0.48'/>
+    <path d='M0 592H1600V760H0Z' fill='url(#floorGrid)' opacity='0.55'/>
+    <path d='M0 592H1600' stroke='#FFFFFF' stroke-opacity='0.08'/>
 
-      <g transform='translate(253 38)'>
-        <circle r='9' fill='#FFFFFF' stroke='#E45164' stroke-width='3'/>
-        <path d='M0 -18v8M-5 -14L0 -9L5 -14' fill='none' stroke='#E45164' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
-        <rect x='-41' y='-46' width='82' height='22' rx='11' fill='#FFF0F2'/>
-        <text x='0' y='-31' text-anchor='middle' fill='#C84255' font-size='10' font-weight='700'>分时顶</text>
+    <g transform='translate(64 52)' font-family='Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif'>
+      <g filter='url(#logoShadow)'>
+        <rect width='48' height='48' rx='15' fill='#F4F2FF'/>
+        <circle cx='24' cy='24' r='10' fill='none' stroke='#0A0B11' stroke-width='4'/>
+        <path d='M31 31L37 37' stroke='#0A0B11' stroke-width='4' stroke-linecap='round'/>
+      </g>
+      <text x='68' y='32' fill='#F7F5FF' font-size='25' font-weight='650' letter-spacing='-0.5'>feels-quanty</text>
+    </g>
+
+    <g transform='translate(1536 66)' text-anchor='end' font-family='Inter, Segoe UI, sans-serif'>
+      <text y='0' fill='#F3F1FF' font-size='12' font-weight='700' letter-spacing='2.8'>SIGNAL INTELLIGENCE</text>
+      <text y='25' fill='#89869B' font-size='11' letter-spacing='1.6'>LOCAL EDITION</text>
+    </g>
+
+    <g text-anchor='middle' font-family='Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif'>
+      <g transform='translate(800 172)'>
+        <rect x='-138' y='-20' width='276' height='40' rx='20' fill='#FFFFFF' fill-opacity='0.055' stroke='#FFFFFF' stroke-opacity='0.13'/>
+        <circle cx='-109' cy='0' r='4' fill='#6EE7C2'/>
+        <text x='12' y='5' fill='#C7C3D7' font-size='12' font-weight='650' letter-spacing='2.1'>INTRADAY SIGNAL ENGINE</text>
       </g>
 
-      <g transform='translate(401 147)'>
-        <circle r='9' fill='#FFFFFF' stroke='#15986A' stroke-width='3'/>
-        <path d='M0 18v-8M-5 14L0 9L5 14' fill='none' stroke='#15986A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
+      <text x='800' y='303' fill='url(#titleGradient)' font-size='112' font-weight='740' letter-spacing='-5'>feels-quanty</text>
+      <text x='800' y='358' fill='#B1ADBF' font-size='24' font-weight='420' letter-spacing='1'>看见转折，把决定留给你</text>
+      <text x='800' y='402' fill='#777486' font-size='15' letter-spacing='2.4'>分时顶底  ×  MACD 背离  ×  WINDPY 实时量价</text>
+    </g>
+
+    <g filter='url(#lineGlow)'>
+      <path d='M75 548C151 548 185 528 246 531C308 534 332 571 392 560C451 549 477 490 541 500C603 510 630 550 685 533C741 516 762 448 824 459C887 470 902 534 964 520C1027 506 1044 438 1112 450C1179 462 1211 512 1270 494C1329 476 1375 429 1525 438' fill='none' stroke='url(#lineGradient)' stroke-width='4' stroke-linecap='round'/>
+    </g>
+
+    <g font-family='Inter, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif'>
+      <g transform='translate(541 500)'>
+        <circle r='18' fill='#FF6680' fill-opacity='0.16' filter='url(#softGlow)'/>
+        <circle r='7' fill='#0A0B11' stroke='#FF7890' stroke-width='3'/>
+        <path d='M0 -19V-10M-5 -15L0 -10L5 -15' fill='none' stroke='#FF7890' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
+        <text x='0' y='-34' text-anchor='middle' fill='#FF92A3' font-size='11' font-weight='700' letter-spacing='1.2'>SELL</text>
+      </g>
+      <g transform='translate(1112 450)'>
+        <circle r='18' fill='#59E0BE' fill-opacity='0.15' filter='url(#softGlow)'/>
+        <circle r='7' fill='#0A0B11' stroke='#65E1C1' stroke-width='3'/>
+        <path d='M0 19V10M-5 15L0 10L5 15' fill='none' stroke='#65E1C1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>
+        <text x='0' y='38' text-anchor='middle' fill='#7DE7CC' font-size='11' font-weight='700' letter-spacing='1.2'>BUY</text>
       </g>
     </g>
 
-    <g transform='translate(28 330)'>
-      <rect width='530' height='40' rx='12' fill='#191D1A'/>
-      <circle cx='20' cy='20' r='5' fill='#FF7182'/>
-      <text x='34' y='25' fill='#F8FAF8' font-size='13' font-weight='700'>SELL · 分时顶确认</text>
-      <text x='438' y='25' fill='#AEB6B0' font-size='12'>置信度</text>
-      <text x='504' y='25' text-anchor='end' fill='#FF8D9B' font-size='13' font-weight='750'>92</text>
+    <g transform='translate(800 665)' text-anchor='middle' font-family='Inter, Segoe UI, sans-serif'>
+      <g transform='translate(-230 0)'>
+        <circle cx='-53' cy='-4' r='3' fill='#6EE7C2'/>
+        <text y='0' fill='#ABA7B8' font-size='11' font-weight='650' letter-spacing='1.8'>WINDPY LIVE</text>
+      </g>
+      <g>
+        <circle cx='-64' cy='-4' r='3' fill='#9F91FF'/>
+        <text y='0' fill='#ABA7B8' font-size='11' font-weight='650' letter-spacing='1.8'>LOCAL-FIRST</text>
+      </g>
+      <g transform='translate(230 0)'>
+        <circle cx='-62' cy='-4' r='3' fill='#FF879B'/>
+        <text y='0' fill='#ABA7B8' font-size='11' font-weight='650' letter-spacing='1.8'>SIGNAL ONLY</text>
+      </g>
     </g>
-  </g>
 
-  <text x='82' y='504' fill='#909792' font-family='Segoe UI, Arial, Microsoft YaHei, sans-serif' font-size='14'>只提醒 · 不下单 · 不使用未来数据</text>
+    <rect x='0.5' y='0.5' width='1599' height='759' rx='31.5' fill='none' stroke='#FFFFFF' stroke-opacity='0.10'/>
+  </g>
 </svg>
